@@ -125,7 +125,13 @@ def paste_text(e):
     else:
         if selected:
             position = my_text.index(INSERT)
-            my_text.insert(position, selected)
+            # Split the selected text into words
+            words = selected.split()
+            for word in words:
+                # Insert each word with a space
+                my_text.insert(position, word + " ")
+                # Move the position to the end of the inserted word
+                position = my_text.index(f"{position} + {len(word)} chars")
 
 # Undo and Redo functions
 def undo_text(e=None):
@@ -335,6 +341,41 @@ def unhighlight_text():
     highlight_active = False
     highlight_button.config(bg="SystemButtonFace")  # Change button color to default
 
+# Function to align text
+def align_text(align_type):
+    if my_text.tag_ranges("sel"):
+        start, end = my_text.tag_ranges("sel")
+        current_tags = my_text.tag_names(start)
+        if "align" in current_tags:
+            my_text.tag_remove("align", start, end)
+        my_text.tag_add("align", start, end)
+        my_text.tag_configure("align", justify=align_type)
+        if align_type == "justify":
+            # Get the text content
+            text_content = my_text.get(start, end)
+            # Calculate the number of spaces to add between words
+            spaces_to_add = text_content.count(" ")
+            # Add the necessary spaces to justify the text
+            for _ in range(spaces_to_add):
+                my_text.insert(end, " ")
+    else:
+        # Get current position
+        current_pos = my_text.index(INSERT)
+        # Get the content of the line where the cursor is
+        line_start = my_text.index(f"{current_pos} linestart")
+        line_end = my_text.index(f"{current_pos} lineend")
+        current_line = my_text.get(line_start, line_end)
+
+        # If there is content, the text will be added in the current position
+        if current_line.strip():
+            my_text.insert(INSERT, " ", "align")
+            my_text.tag_add("align", INSERT + "-1c", INSERT)
+            my_text.insert(INSERT, " ", "align")
+            my_text.tag_add("align", INSERT + "-1c", INSERT)
+
+        my_text.tag_configure("align", justify=align_type)
+
+
 # Create Menu
 my_menu = Menu(root)
 root.config(menu=my_menu)
@@ -358,6 +399,35 @@ edit_menu.add_command(label="Paste   (CTRL+V)", command=lambda: paste_text(False
 edit_menu.add_command(label="Undo   (CTRL+Z)", command=undo_text)
 edit_menu.add_command(label="Redo   (CTRL+Y)", command=redo_text)
 
+# Function to add tooltip for buttons
+def add_tooltip(widget, text):
+    Tooltip(widget, text)
+
+# Tooltip class
+class Tooltip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+        self.tooltip = None
+
+    def enter(self, event=None):
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+
+        self.tooltip = Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+
+        label = Label(self.tooltip, text=self.text, background="lightyellow", relief="solid", borderwidth=1, font=("Helvetica", 10))
+        label.pack(ipadx=5)
+
+    def close(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
+
 # Create Toolbar Frame
 toolbar_frame = Frame(root, bd=1, relief=RIDGE)
 toolbar_frame.pack(fill=X, padx=5, pady=5)
@@ -369,6 +439,7 @@ undo_img = ImageTk.PhotoImage(undo_img)
 undo_button = Button(toolbar_frame, image=undo_img, command=undo_text)
 undo_button.image = undo_img
 undo_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(undo_button, "Undo")
 
 # Redo Button
 redo_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\redo.ico")
@@ -377,6 +448,7 @@ redo_img = ImageTk.PhotoImage(redo_img)
 redo_button = Button(toolbar_frame, image=redo_img, command=redo_text)
 redo_button.image = redo_img
 redo_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(redo_button, "Redo")
 
 # Font Dropdown
 font_tuple = font.families()
@@ -385,6 +457,7 @@ font_combobox = Combobox(toolbar_frame, textvariable=font_var, state='readonly',
 font_combobox.set('Helvetica')  # Default font
 font_combobox.pack(side=LEFT, padx=2, pady=2)
 font_combobox.bind("<<ComboboxSelected>>", change_font_style)
+add_tooltip(font_combobox, "Font Style")
 
 # Font Size Dropdown
 font_size_var = StringVar()
@@ -392,6 +465,7 @@ font_size_combobox = Combobox(toolbar_frame, textvariable=font_size_var, values=
 font_size_combobox.set(16)  # default font size
 font_size_combobox.pack(side=LEFT, padx=2, pady=2)
 font_size_combobox.bind("<<ComboboxSelected>>", change_font_size)
+add_tooltip(font_size_combobox, "Font Size")
 
 # Style Dropdown
 style_var = StringVar()
@@ -399,6 +473,7 @@ style_combobox = Combobox(toolbar_frame, textvariable=style_var, state='readonly
 style_combobox.current(0)
 style_combobox.pack(side=LEFT, padx=2, pady=2)
 style_combobox.bind("<<ComboboxSelected>>", change_text_style)
+add_tooltip(style_combobox, "Text Style")
 
 # Bold Button
 bold_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\bold.ico")
@@ -407,6 +482,7 @@ bold_img = ImageTk.PhotoImage(bold_img)
 bold_button = Button(toolbar_frame, image=bold_img, command=lambda: change_font_style(None, "Bold"))
 bold_button.image = bold_img
 bold_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(bold_button, "Bold")
 
 # Italic Button
 italic_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\italic.ico")
@@ -415,6 +491,7 @@ italic_img = ImageTk.PhotoImage(italic_img)
 italic_button = Button(toolbar_frame, image=italic_img, command=lambda: change_font_style(None, "Italic"))
 italic_button.image = italic_img
 italic_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(italic_button, "Italic")
 
 # Underline Button
 underline_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\underline.ico")
@@ -423,7 +500,7 @@ underline_img = ImageTk.PhotoImage(underline_img)
 underline_button = Button(toolbar_frame, image=underline_img, command=lambda: change_font_style(None, "Underline"))
 underline_button.image = underline_img
 underline_button.pack(side=LEFT, padx=2, pady=2)
-
+add_tooltip(underline_button, "Underline")
 
 # Text Color Button
 text_color_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\text_color.ico")
@@ -432,6 +509,7 @@ text_color_img = ImageTk.PhotoImage(text_color_img)
 text_color_button = Button(toolbar_frame, image=text_color_img, command=text_color)
 text_color_button.image = text_color_img
 text_color_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(text_color_button, "Text Color")
 
 # Highlight Color Button
 highlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\highlight.ico")
@@ -440,6 +518,7 @@ highlight_img = ImageTk.PhotoImage(highlight_img)
 highlight_button = Button(toolbar_frame, image=highlight_img, command=highlight_text)
 highlight_button.image = highlight_img
 highlight_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(highlight_button, "Highlight")
 
 # Unhighlight Button
 unhighlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\unhighlight.ico")
@@ -448,6 +527,72 @@ unhighlight_img = ImageTk.PhotoImage(unhighlight_img)
 unhighlight_button = Button(toolbar_frame, image=unhighlight_img, command=unhighlight_text)
 unhighlight_button.image = unhighlight_img
 unhighlight_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(unhighlight_button, "Remove Highlight")
+
+# Align Left Button
+align_left_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_left.ico")
+align_left_img = align_left_img.resize((16, 16))
+align_left_img = ImageTk.PhotoImage(align_left_img)
+align_left_button = Button(toolbar_frame, image=align_left_img, command=lambda: align_text("left"))
+align_left_button.image = align_left_img
+align_left_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(align_left_button, "Align Left")
+
+# Align Center Button
+align_center_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_center.ico")
+align_center_img = align_center_img.resize((16, 16))
+align_center_img = ImageTk.PhotoImage(align_center_img)
+align_center_button = Button(toolbar_frame, image=align_center_img, command=lambda: align_text("center"))
+align_center_button.image = align_center_img
+align_center_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(align_center_button, "Align Center")
+
+# Align Right Button
+align_right_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_right.ico")
+align_right_img = align_right_img.resize((16, 16))
+align_right_img = ImageTk.PhotoImage(align_right_img)
+align_right_button = Button(toolbar_frame, image=align_right_img, command=lambda: align_text("right"))
+align_right_button.image = align_right_img
+align_right_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(align_right_button, "Align Right")
+
+# Justify Button
+justify_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\justify.ico")
+justify_img = justify_img.resize((16, 16))
+justify_img = ImageTk.PhotoImage(justify_img)
+justify_button = Button(toolbar_frame, image=justify_img, command=lambda: align_text("justify"))
+justify_button.image = justify_img
+justify_button.pack(side=LEFT, padx=2, pady=2)
+add_tooltip(justify_button, "Justify")
+
+# Function to add tooltip for buttons
+def add_tooltip(widget, text):
+    Tooltip(widget, text)
+
+# Tooltip class
+class Tooltip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.close)
+        self.tooltip = None
+
+    def enter(self, event=None):
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 25
+
+        self.tooltip = Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+
+        label = Label(self.tooltip, text=self.text, background="lightyellow", relief="solid", borderwidth=1, font=("Helvetica", 10))
+        label.pack(ipadx=5)
+
+    def close(self, event=None):
+        if self.tooltip:
+            self.tooltip.destroy()
 
 # Create Main Frame
 my_frame = Frame(root)
@@ -461,7 +606,7 @@ hor_scroll = Scrollbar(my_frame, orient='horizontal')
 hor_scroll.pack(side=BOTTOM, fill=X)
 
 # Create Text Box
-my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, wrap="none", xscrollcommand=hor_scroll.set)
+my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, xscrollcommand=hor_scroll.set)
 my_text.pack()
 
 # Configure Scrollbar
