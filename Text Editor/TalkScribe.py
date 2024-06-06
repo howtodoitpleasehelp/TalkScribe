@@ -138,7 +138,11 @@ def redo_text(e=None):
 def text_color():
     selected_text_color = colorchooser.askcolor()[1]
     if selected_text_color:
-        my_text.config(fg=selected_text_color)
+        if my_text.tag_ranges("sel"):
+            my_text.tag_add("text_color", SEL_FIRST, SEL_LAST)
+            my_text.tag_configure("text_color", foreground=selected_text_color)
+        else:
+            my_text.config(fg=selected_text_color)
 
 # Function to change font size
 def change_font_size(event=None):
@@ -159,6 +163,28 @@ def change_font_style(event=None):
     try:
         new_font = font_var.get()
         if my_text.tag_ranges("sel"):
+            start, end = my_text.tag_ranges("sel")
+            current_tags = my_text.tag_names(start)
+            if "font_style" in current_tags:
+                my_text.tag_remove("font_style", start, end)
+            my_text.tag_add("font_style", start, end)
+            my_text.tag_configure("font_style", font=(new_font, current_font_size))
+            if highlight_active:
+                my_text.tag_add("highlighted_text", start, end)
+                my_text.tag_configure("highlighted_text", background=highlight_color)
+        else:
+            font_style = font.Font(font=my_text['font'])
+            font_style.config(family=new_font)
+            my_text.config(font=font_style)
+    except ValueError:
+        pass  # Ignore if the value is not a font family
+
+
+# Function to change font style
+def change_font_style(event=None):
+    try:
+        new_font = font_var.get()
+        if my_text.tag_ranges("sel"):
             my_text.tag_add("font_style", SEL_FIRST, SEL_LAST)
             my_text.tag_configure("font_style", font=(new_font, current_font_size))
         else:
@@ -167,7 +193,6 @@ def change_font_style(event=None):
             my_text.config(font=font_style)
     except ValueError:
         pass  # Ignore if the value is not a font family
-
 
 # Font Style Function
 def change_font_style(event, style):
@@ -221,6 +246,70 @@ def change_font_style(event, style):
             my_text.tag_add("bold", INSERT + "-1c", INSERT)
 
         my_text.tag_configure("bold", font=('Helvetica', 16, 'bold'))
+
+# Style Dropdown Function
+def change_text_style(event=None):
+    try:
+        new_style = style_var.get()
+        if my_text.tag_ranges("sel"):
+            start, end = my_text.tag_ranges("sel")
+            current_tags = my_text.tag_names(start)
+            for tag in current_tags:
+                my_text.tag_remove(tag, start, end)
+            if new_style == 'Title':
+                my_text.tag_add("title", start, end)
+                my_text.tag_configure("title", font=('Helvetica', 24, 'bold'))
+            elif new_style == 'Heading 1':
+                my_text.tag_add("heading1", start, end)
+                my_text.tag_configure("heading1", font=('Helvetica', 20, 'bold'))
+            elif new_style == 'Heading 2':
+                my_text.tag_add("heading2", start, end)
+                my_text.tag_configure("heading2", font=('Helvetica', 18, 'bold'))
+            elif new_style == 'Heading 3':
+                my_text.tag_add("heading3", start, end)
+                my_text.tag_configure("heading3", font=('Helvetica', 16, 'bold'))
+            else:
+                my_text.tag_add("normal", start, end)
+                my_text.tag_configure("normal", font=('Helvetica', 14))
+        else:
+            current_pos = my_text.index(INSERT)
+            line_start = my_text.index(f"{current_pos} linestart")
+            line_end = my_text.index(f"{current_pos} lineend")
+            current_line = my_text.get(line_start, line_end)
+            if current_line.strip():
+                if new_style == 'Title':
+                    my_text.insert(INSERT, "\n\n", "title")
+                    my_text.tag_add("title", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.insert(INSERT, "\n\n")
+                    my_text.tag_add("title", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.tag_configure("title", font=('Helvetica', 24, 'bold'))
+                elif new_style == 'Heading 1':
+                    my_text.insert(INSERT, "\n\n", "heading1")
+                    my_text.tag_add("heading1", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.insert(INSERT, "\n\n")
+                    my_text.tag_add("heading1", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.tag_configure("heading1", font=('Helvetica', 20, 'bold'))
+                elif new_style == 'Heading 2':
+                    my_text.insert(INSERT, "\n\n", "heading2")
+                    my_text.tag_add("heading2", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.insert(INSERT, "\n\n")
+                    my_text.tag_add("heading2", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.tag_configure("heading2", font=('Helvetica', 16, 'bold'))
+                elif new_style == 'Heading 3':
+                    my_text.insert(INSERT, "\n\n", "heading3")
+                    my_text.tag_add("heading3", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.insert(INSERT, "\n\n")
+                    my_text.tag_add("heading3", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.tag_configure("heading3", font=('Helvetica', 14, 'bold'))
+                else:
+                    my_text.insert(INSERT, "\n\n", "normal")
+                    my_text.tag_add("normal", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.insert(INSERT, "\n\n")
+                    my_text.tag_add("normal", INSERT + "-2l", INSERT + "-1l lineend")
+                    my_text.tag_configure("normal", font=('Helvetica', 12))
+    except ValueError:
+        pass  # Ignore if the value is not a style
+
 
 # Highlight Text Function
 def highlight_text():
@@ -306,9 +395,10 @@ font_size_combobox.bind("<<ComboboxSelected>>", change_font_size)
 
 # Style Dropdown
 style_var = StringVar()
-style_combobox = Combobox(toolbar_frame, textvariable=style_var, state='readonly', values=('Normal', 'Bold', 'Italic', 'Underline'), width=10)
+style_combobox = Combobox(toolbar_frame, textvariable=style_var, state='readonly', values=('Normal', 'Title', 'Heading 1', 'Heading 2', 'Heading 3'), width=10)
 style_combobox.current(0)
 style_combobox.pack(side=LEFT, padx=2, pady=2)
+style_combobox.bind("<<ComboboxSelected>>", change_text_style)
 
 # Bold Button
 bold_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\bold.ico")
@@ -391,10 +481,6 @@ text_color_button.pack(side=LEFT, padx=2, pady=2)
 highlight_button.pack(side=LEFT, padx=2, pady=2)
 
 
-# Add Status Bar to Bottom of App
-status_bar = Label(root, text='Ready        ', anchor=E)
-status_bar.pack(fill=X, side=BOTTOM, ipady=5)
-
 # Edit Bindings
 root.bind('<Control-x>', lambda event: cut_text(True))
 root.bind('<Control-c>', lambda event: copy_text(True))
@@ -408,6 +494,11 @@ root.bind('<Control-Shift-i>', lambda event: change_font_style(None, "Italic"))
 root.bind('<Control-u>', lambda event: change_font_style(None, "Underline"))
 root.bind('<Control-Shift-u>', lambda event: change_font_style(None, "Underline"))
 root.bind('<Control-h>', lambda event: highlight_text())
+
+# Add Status Bar to Bottom of App
+status_bar = Label(root, text='Ready        ', anchor=E)
+status_bar.pack(fill=X, side=BOTTOM, ipady=5)
+
 
 root.mainloop()
 
