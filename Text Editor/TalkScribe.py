@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import filedialog, font, colorchooser
 from tkinter.ttk import Combobox
+from PIL import Image, ImageTk
 
 root = Tk()
 root.title('TalkScribe')
@@ -10,6 +11,8 @@ root.geometry("1200x660")
 # Set variable for open file
 global open_status_name
 open_status_name = False
+highlight_color = None
+highlight_active = False
 
 global selected
 selected = False
@@ -31,7 +34,7 @@ def open_file():
     my_text.delete("1.0", END)
 
     # Grab Filename
-    text_file = filedialog.askopenfilename(initialdir="C:\\Users\\    ", title="Open File", filetypes=(("Text Files", "*.txt"), ("PDF Files", "*.pdf"), ("HTML Files", "*.html"), ("Python Files","*.py"),("All Files", "*.*")))
+    text_file = filedialog.askopenfilename(initialdir="C:\\Users\\", title="Open File", filetypes=(("Text Files", "*.txt"), ("PDF Files", "*.pdf"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
     
     # Check to see if there is a filename 
     if text_file:
@@ -55,7 +58,7 @@ def open_file():
 
 # Save as File
 def save_as_file():
-    text_file = filedialog.asksaveasfilename(defaultextension=".*", initialdir="C:\\Users\\", title="Save File", filetypes=(("Text Files", "*.txt"), ("PDF Files", "*.pdf"), ("HTML Files", "*.html"), ("Python Files","*.py"),("All Files", "*.*")))
+    text_file = filedialog.asksaveasfilename(defaultextension=".*", initialdir="C:\\Users\\", title="Save File", filetypes=(("Text Files", "*.txt"), ("PDF Files", "*.pdf"), ("HTML Files", "*.html"), ("Python Files", "*.py"), ("All Files", "*.*")))
     if text_file:
         # Update Status Bars
         name = text_file
@@ -131,24 +134,117 @@ def undo_text(e=None):
 def redo_text(e=None):
     my_text.edit_redo()
 
-# Create Main Frame
-my_frame = Frame(root)
-my_frame.pack(pady=5)
+# Text Color Function
+def text_color():
+    selected_text_color = colorchooser.askcolor()[1]
+    if selected_text_color:
+        my_text.config(fg=selected_text_color)
 
-# Create Scroll Bar for Textbox
-text_scroll = Scrollbar(my_frame)
-text_scroll.pack(side=RIGHT, fill=Y)
+# Function to change font size
+def change_font_size(event=None):
+    try:
+        new_size = int(font_size_var.get())
+        if my_text.tag_ranges("sel"):
+            my_text.tag_add("font_size", "sel.first", "sel.last")
+            my_text.tag_configure("font_size", font=(None, new_size))
+        else:
+            font_style = font.Font(font=my_text['font'])
+            font_style.config(size=new_size)
+            my_text.tag_configure("font_size", font=(None, new_size))
+    except ValueError:
+        pass  # Ignore if the value is not an integer
 
-hor_scroll = Scrollbar(my_frame, orient='horizontal')
-hor_scroll.pack(side=BOTTOM, fill=X)
+# Function to change font style
+def change_font_style(event=None):
+    try:
+        new_font = font_var.get()
+        if my_text.tag_ranges("sel"):
+            my_text.tag_add("font_style", SEL_FIRST, SEL_LAST)
+            my_text.tag_configure("font_style", font=(new_font, current_font_size))
+        else:
+            font_style = font.Font(font=my_text['font'])
+            font_style.config(family=new_font)
+            my_text.config(font=font_style)
+    except ValueError:
+        pass  # Ignore if the value is not a font family
 
-# Create Text Box
-my_text = Text(my_frame, width=97, height=25, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, wrap="none", xscrollcommand=hor_scroll.set)
-my_text.pack()
 
-# Configure Scrollbar
-text_scroll.config(command=my_text.yview)
-hor_scroll.config(command=my_text.xview)
+# Font Style Function
+def change_font_style(event, style):
+    # Check if any text is selected
+    if my_text.tag_ranges("sel"):
+        start, end = my_text.tag_ranges("sel")
+        current_tags = my_text.tag_names(start)
+        if style == "Bold":
+            if "bold" in current_tags:
+                my_text.tag_remove("bold", start, end)
+            else:
+                if "italic" in current_tags:
+                    my_text.tag_remove("italic", start, end)
+                if "underline" in current_tags:
+                    my_text.tag_remove("underline", start, end)
+                my_text.tag_add("bold", start, end)
+                my_text.tag_configure("bold", font=('Helvetica', 16, 'bold'))
+        elif style == "Italic":
+            if "italic" in current_tags:
+                my_text.tag_remove("italic", start, end)
+            else:
+                if "bold" in current_tags:
+                    my_text.tag_remove("bold", start, end)
+                if "underline" in current_tags:
+                    my_text.tag_remove("underline", start, end)
+                my_text.tag_add("italic", start, end)
+                my_text.tag_configure("italic", font=('Helvetica', 16, 'italic'))
+        elif style == "Underline":
+            if "underline" in current_tags:
+                my_text.tag_remove("underline", start, end)
+            else:
+                if "bold" in current_tags:
+                    my_text.tag_remove("bold", start, end)
+                if "italic" in current_tags:
+                    my_text.tag_remove("italic", start, end)
+                my_text.tag_add("underline", start, end)
+                my_text.tag_configure("underline", font=('Helvetica', 16, 'underline'))
+    else:
+        # Get current position
+        current_pos = my_text.index(INSERT)
+        # Get the content of the line where the cursor is
+        line_start = my_text.index(f"{current_pos} linestart")
+        line_end = my_text.index(f"{current_pos} lineend")
+        current_line = my_text.get(line_start, line_end)
+
+        # If there is content, the text will be added in the current position
+        if current_line.strip():
+            my_text.insert(INSERT, " ", "bold")
+            my_text.tag_add("bold", INSERT + "-1c", INSERT)
+            my_text.insert(INSERT, " ", "bold")
+            my_text.tag_add("bold", INSERT + "-1c", INSERT)
+
+        my_text.tag_configure("bold", font=('Helvetica', 16, 'bold'))
+
+# Highlight Text Function
+def highlight_text():
+    global highlight_color, highlight_active
+    if highlight_active:
+        highlight_active = False
+        highlight_button.config(bg="SystemButtonFace")  # Change button color to default
+    else:
+        selected_color = colorchooser.askcolor()[1]
+        if selected_color:
+            highlight_color = selected_color
+            highlight_active = True
+            highlight_button.config(bg="lightgreen")  # Change button color when active
+
+    if highlight_active:
+        my_text.tag_add("highlighted_text", "sel.first", "sel.last")
+        my_text.tag_configure("highlighted_text", background=highlight_color)
+
+# Unhighlight Text Function
+def unhighlight_text():
+    my_text.tag_remove("highlighted_text", "1.0", END)
+    global highlight_active
+    highlight_active = False
+    highlight_button.config(bg="SystemButtonFace")  # Change button color to default
 
 # Create Menu
 my_menu = Menu(root)
@@ -178,87 +274,140 @@ toolbar_frame = Frame(root, bd=1, relief=RIDGE)
 toolbar_frame.pack(fill=X, padx=5, pady=5)
 
 # Undo Button
-undo_img = PhotoImage(file="undo.png")  # Replace "undo.png" with the name of your undo image file
+undo_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\undo.ico")
+undo_img = undo_img.resize((16, 16))
+undo_img = ImageTk.PhotoImage(undo_img)
 undo_button = Button(toolbar_frame, image=undo_img, command=undo_text)
 undo_button.image = undo_img
-undo_button.pack(side=LEFT, padx=2)
+undo_button.pack(side=LEFT, padx=2, pady=2)
 
 # Redo Button
-redo_img = PhotoImage(file="redo.png")  # Replace "redo.png" with the name of your redo image file
+redo_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\redo.ico")
+redo_img = redo_img.resize((16, 16))
+redo_img = ImageTk.PhotoImage(redo_img)
 redo_button = Button(toolbar_frame, image=redo_img, command=redo_text)
 redo_button.image = redo_img
-redo_button.pack(side=LEFT, padx=2)
+redo_button.pack(side=LEFT, padx=2, pady=2)
 
 # Font Dropdown
 font_tuple = font.families()
 font_var = StringVar()
 font_combobox = Combobox(toolbar_frame, textvariable=font_var, state='readonly', values=font_tuple, width=30)
 font_combobox.set('Helvetica')  # Default font
-font_combobox.pack(side=LEFT, padx=2)
+font_combobox.pack(side=LEFT, padx=2, pady=2)
+font_combobox.bind("<<ComboboxSelected>>", change_font_style)
 
 # Font Size Dropdown
-size_var = IntVar()
-font_size = Combobox(toolbar_frame, textvariable=size_var, state='readonly', values=tuple(range(8, 80, 2)), width=5)
-font_size.current(4)  # Default size 16
-font_size.pack(side=LEFT, padx=2)
+font_size_var = StringVar()
+font_size_combobox = Combobox(toolbar_frame, textvariable=font_size_var, values=[i for i in range(8, 80)], state='readonly', width=5)
+font_size_combobox.set(16)  # default font size
+font_size_combobox.pack(side=LEFT, padx=2, pady=2)
+font_size_combobox.bind("<<ComboboxSelected>>", change_font_size)
 
 # Style Dropdown
 style_var = StringVar()
 style_combobox = Combobox(toolbar_frame, textvariable=style_var, state='readonly', values=('Normal', 'Bold', 'Italic', 'Underline'), width=10)
 style_combobox.current(0)
-style_combobox.pack(side=LEFT, padx=2)
+style_combobox.pack(side=LEFT, padx=2, pady=2)
 
 # Bold Button
-bold_img = PhotoImage(file="bold.png")  # Replace "bold.png" with the name of your bold image file
-bold_button = Button(toolbar_frame, image=bold_img)
+bold_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\bold.ico")
+bold_img = bold_img.resize((16, 16))
+bold_img = ImageTk.PhotoImage(bold_img)
+bold_button = Button(toolbar_frame, image=bold_img, command=lambda: change_font_style(None, "Bold"))
 bold_button.image = bold_img
-bold_button.pack(side=LEFT, padx=2)
+bold_button.pack(side=LEFT, padx=2, pady=2)
 
 # Italic Button
-italic_img = PhotoImage(file="italic.png")  # Replace "italic.png" with the name of your italic image file
-italic_button = Button(toolbar_frame, image=italic_img)
+italic_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\italic.ico")
+italic_img = italic_img.resize((16, 16))
+italic_img = ImageTk.PhotoImage(italic_img)
+italic_button = Button(toolbar_frame, image=italic_img, command=lambda: change_font_style(None, "Italic"))
 italic_button.image = italic_img
-italic_button.pack(side=LEFT, padx=2)
+italic_button.pack(side=LEFT, padx=2, pady=2)
 
 # Underline Button
-underline_img = PhotoImage(file="underline.png")  # Replace "underline.png" with the name of your underline image file
-underline_button = Button(toolbar_frame, image=underline_img)
+underline_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\underline.ico")
+underline_img = underline_img.resize((16, 16))
+underline_img = ImageTk.PhotoImage(underline_img)
+underline_button = Button(toolbar_frame, image=underline_img, command=lambda: change_font_style(None, "Underline"))
 underline_button.image = underline_img
-underline_button.pack(side=LEFT, padx=2)
+underline_button.pack(side=LEFT, padx=2, pady=2)
+
 
 # Text Color Button
-text_color_img = PhotoImage(file="text_color.png")  # Replace "text_color.png" with the name of your text color image file
-text_color_button = Button(toolbar_frame, image=text_color_img)
+text_color_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\text_color.ico")
+text_color_img = text_color_img.resize((16, 16))
+text_color_img = ImageTk.PhotoImage(text_color_img)
+text_color_button = Button(toolbar_frame, image=text_color_img, command=text_color)
 text_color_button.image = text_color_img
-text_color_button.pack(side=LEFT, padx=2)
+text_color_button.pack(side=LEFT, padx=2, pady=2)
 
 # Highlight Color Button
-highlight_img = PhotoImage(file="highlight.png")  # Replace "highlight.png" with the name of your highlight image file
-highlight_button = Button(toolbar_frame, image=highlight_img)
+highlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\highlight.ico")
+highlight_img = highlight_img.resize((16, 16))
+highlight_img = ImageTk.PhotoImage(highlight_img)
+highlight_button = Button(toolbar_frame, image=highlight_img, command=highlight_text)
 highlight_button.image = highlight_img
-highlight_button.pack(side=LEFT, padx=2)
+highlight_button.pack(side=LEFT, padx=2, pady=2)
+
+# Unhighlight Button
+unhighlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\unhighlight.ico")
+unhighlight_img = unhighlight_img.resize((16, 16))
+unhighlight_img = ImageTk.PhotoImage(unhighlight_img)
+unhighlight_button = Button(toolbar_frame, image=unhighlight_img, command=unhighlight_text)
+unhighlight_button.image = unhighlight_img
+unhighlight_button.pack(side=LEFT, padx=2, pady=2)
+
+# Create Main Frame
+my_frame = Frame(root)
+my_frame.pack(pady=5)
+
+# Create Scroll Bar for Textbox
+text_scroll = Scrollbar(my_frame)
+text_scroll.pack(side=RIGHT, fill=Y)
+
+hor_scroll = Scrollbar(my_frame, orient='horizontal')
+hor_scroll.pack(side=BOTTOM, fill=X)
+
+# Create Text Box
+my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, wrap="none", xscrollcommand=hor_scroll.set)
+my_text.pack()
+
+# Configure Scrollbar
+text_scroll.config(command=my_text.yview)
+hor_scroll.config(command=my_text.xview)
 
 # Place Widgets in Toolbar Frame
-undo_button.grid(row=0, column=0, padx=5, pady=5)
-redo_button.grid(row=0, column=1, padx=5, pady=5)
-font_combobox.grid(row=0, column=2, padx=5, pady=5)
-font_size.grid(row=0, column=3, padx=5, pady=5)
-style_combobox.grid(row=0, column=4, padx=5, pady=5)
-bold_button.grid(row=0, column=5, padx=5, pady=5)
-italic_button.grid(row=0, column=6, padx=5, pady=5)
-underline_button.grid(row=0, column=7, padx=5, pady=5)
-text_color_button.grid(row=0, column=8, padx=5, pady=5)
-highlight_button.grid(row=0, column=9, padx=5, pady=5)
+undo_button.pack(side=LEFT, padx=2, pady=2)
+redo_button.pack(side=LEFT, padx=2, pady=2)
+font_combobox.pack(side=LEFT, padx=2, pady=2)
+font_size_combobox.pack(side=LEFT, padx=2, pady=2)
+style_combobox.pack(side=LEFT, padx=2, pady=2)
+bold_button.pack(side=LEFT, padx=2, pady=2)
+italic_button.pack(side=LEFT, padx=2, pady=2)
+underline_button.pack(side=LEFT, padx=2, pady=2)
+text_color_button.pack(side=LEFT, padx=2, pady=2)
+highlight_button.pack(side=LEFT, padx=2, pady=2)
+
 
 # Add Status Bar to Bottom of App
 status_bar = Label(root, text='Ready        ', anchor=E)
 status_bar.pack(fill=X, side=BOTTOM, ipady=5)
 
 # Edit Bindings
-root.bind('<Control-Key-x>', cut_text)
-root.bind('<Control-Key-c>', copy_text)
-root.bind('<Control-Key-v>', paste_text)
-root.bind('<Control-Key-z>', undo_text)
-root.bind('<Control-Key-y>', redo_text)
+root.bind('<Control-x>', lambda event: cut_text(True))
+root.bind('<Control-c>', lambda event: copy_text(True))
+root.bind('<Control-v>', lambda event: paste_text(True))
+root.bind('<Control-z>', undo_text)
+root.bind('<Control-y>', redo_text)
+root.bind('<Control-b>', lambda event: change_font_style(None, "Bold"))
+root.bind('<Control-Shift-b>', lambda event: change_font_style(None, "Bold"))
+root.bind('<Control-Alt-i>', lambda event: change_font_style(None, "Italic"))
+root.bind('<Control-Shift-i>', lambda event: change_font_style(None, "Italic"))
+root.bind('<Control-u>', lambda event: change_font_style(None, "Underline"))
+root.bind('<Control-Shift-u>', lambda event: change_font_style(None, "Underline"))
+root.bind('<Control-h>', lambda event: highlight_text())
 
 root.mainloop()
+
