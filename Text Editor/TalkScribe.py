@@ -1,3 +1,4 @@
+import tkinter as tk
 from tkinter import *
 from tkinter import ttk, filedialog, font, colorchooser, Button, INSERT
 from tkinter.ttk import Combobox
@@ -49,6 +50,10 @@ def open_file():
         # Make filename global for access later
         global open_status_name
         open_status_name = text_file
+
+    # Update the status bar
+    status_bar = tk.Label(root, text="", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+    status_bar.pack(side=tk.BOTTOM, fill=tk.X)
 
     # Update Status bars
     name = text_file
@@ -173,34 +178,16 @@ def change_font_size(event=None):
         pass  # Ignore if the value is not an integer
 
 # Function to change font style
-def change_font_style(event=None):
+def change_font(event=None):
     try:
         new_font = font_var.get()
         if my_text.tag_ranges("sel"):
             start, end = my_text.tag_ranges("sel")
-            current_tags = my_text.tag_names(start)
-            if "font_style" in current_tags:
-                my_text.tag_remove("font_style", start, end)
             my_text.tag_add("font_style", start, end)
             my_text.tag_configure("font_style", font=(new_font, current_font_size))
             if highlight_active:
                 my_text.tag_add("highlighted_text", start, end)
-                my_text.tag_configure("highlighted_text", background=highlight_color)
-        else:
-            font_style = font.Font(font=my_text['font'])
-            font_style.config(family=new_font)
-            my_text.config(font=font_style)
-    except ValueError:
-        pass  # Ignore if the value is not a font family
-
-
-# Function to change font style
-def change_font_style(event=None):
-    try:
-        new_font = font_var.get()
-        if my_text.tag_ranges("sel"):
-            my_text.tag_add("font_style", SEL_FIRST, SEL_LAST)
-            my_text.tag_configure("font_style", font=(new_font, current_font_size))
+                my_text.tag_configure("highlighted_text", font=(new_font, current_font_size), background=highlight_color)
         else:
             font_style = font.Font(font=my_text['font'])
             font_style.config(family=new_font)
@@ -359,7 +346,8 @@ def align_text(align_type):
         my_text.tag_add("align", start, end)
         my_text.tag_configure("align", justify=align_type)
         if align_type == "justify":
-            # Get the text content
+            # Remove the right align tag if it exists
+            my_text.tag_remove("align", f"{current_pos} linestart", f"{current_pos} lineend")
             text_content = my_text.get(start, end)
             # Calculate the number of spaces to add between words
             spaces_to_add = text_content.count(" ")
@@ -381,34 +369,44 @@ def align_text(align_type):
             my_text.insert(INSERT, " ", "align")
             my_text.tag_add("align", INSERT + "-1c", INSERT)
 
-        my_text.tag_configure("align", justify=align_type)
 
 # Function to use speech-to-text
 def speech_to_text():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
         recognizer.adjust_for_ambient_noise(source)
-        print("Listening...")
+        status_bar.config(text="Listening...")
+        root.update()
         audio = recognizer.listen(source)
 
         try:
             text = recognizer.recognize_google(audio)
             my_text.insert(END, text)
+            status_bar.config(text="Speech-to-Text Successful")
         except Exception as e:
             print(e)
+            status_bar.config(text="Speech-to-Text Failed")
 
 def toggle_microphone():
     global microphone_active
+    engine = pyttsx3.init() 
     if microphone_active:
         microphone_active = False
         mic_button.config(image=mic_icon)
-        mic_button.config(command=microphone_on)
-        add_tooltip(mic_button, "Speech-to-Text")
+        mic_button.config(command=microphone_start)
+        add_tooltip(mic_button, "Turn on Speech-to-Text")
+        status_bar.config(text="Speech-to-Text Turned Off")
+        engine.say("Speech-to-Text turned off")
+        engine.runAndWait()
     else:
         microphone_active = True
         mic_button.config(image=mic_active)
-        mic_button.config(command=microphone_off)
-        add_tooltip(mic_button, "Turn off Speech-to-Text")
+        mic_button.config(command=toggle_microphone)  # Change here
+        add_tooltip(mic_button, "Turn off Speech-to-Text")  # Change here
+        status_bar.config(text="Listening...")
+        engine.say("Listening")
+        engine.runAndWait()
+        microphone_start()
 
 def microphone_on():
     global microphone_active
@@ -419,43 +417,64 @@ def microphone_on():
     with sr.Microphone() as source:
         r.adjust_for_ambient_noise(source)
         while microphone_active:
+            status_bar.config(text="Listening...")
+            root.update()
             audio = r.listen(source)
             try:
                 text = r.recognize_google(audio)
                 my_text.insert(INSERT, text + ' ')
                 engine.say(text)
                 engine.runAndWait()
+                status_bar.config(text="Speech-to-Text Successful")
             except sr.UnknownValueError:
-                error_msg = "Google Speech Recognition could not understand audio"
+                error_msg = "TalkScribe could not understand audio"
                 print(error_msg)
                 engine.say(error_msg)
                 engine.runAndWait()
+                status_bar.config(text="Speech-to-Text Failed")
             except sr.RequestError as e:
                 error_msg = "Could not request results from Google Speech Recognition service; {0}".format(e)
                 print(error_msg)
                 engine.say(error_msg)
                 engine.runAndWait()
+                status_bar.config(text="Speech-to-Text Failed")
             except Exception as e:
                 print(e)
                 engine.say("An error occurred")
-                engine.runAndWait()
-                break
-
+                status_bar.config(text="Speech-to-Text Failed")
         mic_button.config(image=mic_icon)
         mic_button.config(command=toggle_microphone)
-        add_tooltip(mic_button, "Speech-to-Text")
+        add_tooltip(mic_button, "Turn off Speech-to-Text")
+        status_bar.config(text="Speech-to-Text Turned Off")
 
 def microphone_off():
     global microphone_active
     microphone_active = False
     mic_button.config(image=mic_icon)
-    mic_button.config(command=microphone_on)
-    add_tooltip(mic_button, "Speech-to-Text")
+    mic_button.config(command=toggle_microphone)  # Change here
+    add_tooltip(mic_button, "Turn on Speech-to-Text")  # Change here
+    status_bar.config(text="Speech-to-Text Turned Off")
+
+def microphone_start():
+    recognizer = sr.Recognizer()
+    engine = pyttsx3.init()
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)
+        while True:
+            audio = recognizer.listen(source)
+            try:
+                text = recognizer.recognize_google(audio)
+                if "hey" in text.lower():  # Change "hello" to your desired keyword
+                    toggle_microphone()
+                elif "thank you" in text.lower():  # Change "goodbye" to your desired keyword to turn off the microphone
+                    microphone_off()
+            except Exception as e:
+                print(e)
 
 
 # Create Menu
-my_menu = Menu(root)
-my_menu.configure(background='#F5F6E2')
+my_menu = tk.Menu(root, background='#AAD4C1')
+#my_menu.configure(background='#F5F6E2')
 root.config(menu=my_menu)
 
 # Add File Menu
@@ -603,7 +622,7 @@ font_var = tk.StringVar()
 font_combobox = ttk.Combobox(toolbar_frame, textvariable=font_var, state='readonly', values=font_tuple, width=30)
 font_combobox.set('Helvetica')  # Default font
 font_combobox.pack(side=tk.LEFT, padx=2, pady=2)
-font_combobox.bind("<<ComboboxSelected>>", change_font_style)
+font_combobox.bind("<<ComboboxSelected>>", change_font)
 add_tooltip(font_combobox, "Font Style")
 
 # Font Size Dropdown
@@ -703,15 +722,6 @@ align_right_button.image = align_right_img
 align_right_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(align_right_button, "Align Right")
 
-# Justify Button
-justify_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\justify.ico")
-justify_img = justify_img.resize((16, 16))
-justify_img = ImageTk.PhotoImage(justify_img)
-justify_button = tk.Button(toolbar_frame, image=justify_img, command=lambda: align_text("justify"), bg=button_shade)
-justify_button.image = justify_img
-justify_button.pack(side=tk.LEFT, padx=2, pady=2)
-add_tooltip(justify_button, "Justify")
-
 # Create the microphone button
 mic_active = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\mic_active.ico")
 mic_active = mic_active.resize((16, 16))
@@ -790,11 +800,11 @@ root.bind('<Control-Shift-u>', lambda event: change_font_style(None, "Underline"
 root.bind('<Control-h>', lambda event: highlight_text())
 
 # Create Scroll Bar for Textbox
-text_scroll = Scrollbar(my_frame)
-text_scroll.pack(side=RIGHT, fill=Y)
+text_scroll = Scrollbar(my_frame, bg="#5C6C7D", troughcolor="#C4CBD6")
+text_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-hor_scroll = Scrollbar(my_frame, orient='horizontal')
-hor_scroll.pack(side=BOTTOM, fill=X)
+hor_scroll = Scrollbar(my_frame, orient='horizontal', bg="#5C6C7D", troughcolor="#C4CBD6")
+hor_scroll.pack(side=tk.BOTTOM, fill=tk.X)
 
 # Create Text Box
 my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, xscrollcommand=hor_scroll.set)
