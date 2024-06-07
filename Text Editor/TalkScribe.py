@@ -1,7 +1,11 @@
 from tkinter import *
-from tkinter import filedialog, font, colorchooser
+from tkinter import filedialog, font, colorchooser, Button, INSERT
 from tkinter.ttk import Combobox
 from PIL import Image, ImageTk
+import speech_recognition as sr
+import pyttsx3
+import pyaudio
+
 
 root = Tk()
 root.title('TalkScribe')
@@ -16,6 +20,10 @@ highlight_active = False
 
 global selected
 selected = False
+
+global microphone_active
+microphone_active = False
+
 
 # Create New File
 def new_file():
@@ -375,6 +383,75 @@ def align_text(align_type):
 
         my_text.tag_configure("align", justify=align_type)
 
+# Function to use speech-to-text
+def speech_to_text():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        recognizer.adjust_for_ambient_noise(source)
+        print("Listening...")
+        audio = recognizer.listen(source)
+
+        try:
+            text = recognizer.recognize_google(audio)
+            my_text.insert(END, text)
+        except Exception as e:
+            print(e)
+
+def toggle_microphone():
+    global microphone_active
+    if microphone_active:
+        microphone_active = False
+        mic_button.config(image=mic_icon)
+        mic_button.config(command=microphone_on)
+        add_tooltip(mic_button, "Speech-to-Text")
+    else:
+        microphone_active = True
+        mic_button.config(image=mic_active)
+        mic_button.config(command=microphone_off)
+        add_tooltip(mic_button, "Turn off Speech-to-Text")
+
+def microphone_on():
+    global microphone_active
+    microphone_active = True
+    mic_button.config(image=mic_active)
+    r = sr.Recognizer()
+    engine = pyttsx3.init()
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source)
+        while microphone_active:
+            audio = r.listen(source)
+            try:
+                text = r.recognize_google(audio)
+                my_text.insert(INSERT, text + ' ')
+                engine.say(text)
+                engine.runAndWait()
+            except sr.UnknownValueError:
+                error_msg = "Google Speech Recognition could not understand audio"
+                print(error_msg)
+                engine.say(error_msg)
+                engine.runAndWait()
+            except sr.RequestError as e:
+                error_msg = "Could not request results from Google Speech Recognition service; {0}".format(e)
+                print(error_msg)
+                engine.say(error_msg)
+                engine.runAndWait()
+            except Exception as e:
+                print(e)
+                engine.say("An error occurred")
+                engine.runAndWait()
+                break
+
+        mic_button.config(image=mic_icon)
+        mic_button.config(command=toggle_microphone)
+        add_tooltip(mic_button, "Speech-to-Text")
+
+def microphone_off():
+    global microphone_active
+    microphone_active = False
+    mic_button.config(image=mic_icon)
+    mic_button.config(command=microphone_on)
+    add_tooltip(mic_button, "Speech-to-Text")
+
 
 # Create Menu
 my_menu = Menu(root)
@@ -622,6 +699,22 @@ justify_button.image = justify_img
 justify_button.pack(side=LEFT, padx=2, pady=2)
 add_tooltip(justify_button, "Justify")
 
+# Create the microphone button
+mic_active = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\mic_active.ico")
+mic_active = mic_active.resize((16, 16))
+mic_active = ImageTk.PhotoImage(mic_active)
+
+mic_icon = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\mic.ico")
+mic_icon = mic_icon.resize((16, 16))
+mic_icon = ImageTk.PhotoImage(mic_icon)
+
+microphone_active = False
+
+mic_button = Button(toolbar_frame, image=mic_icon, command=toggle_microphone)
+mic_button.image = mic_icon
+mic_button.pack(side=RIGHT, padx=2, pady=2)
+add_tooltip(mic_button, "Speech-to-Text")
+
 # Function to add tooltip for buttons
 def add_tooltip(widget, text):
     Tooltip(widget, text)
@@ -650,6 +743,7 @@ class Tooltip:
     def close(self, event=None):
         if self.tooltip:
             self.tooltip.destroy()
+
 
 # Create Main Frame
 my_frame = Frame(root)
