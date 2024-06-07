@@ -1,5 +1,5 @@
 from tkinter import *
-from tkinter import filedialog, font, colorchooser, Button, INSERT
+from tkinter import ttk, filedialog, font, colorchooser, Button, INSERT
 from tkinter.ttk import Combobox
 from PIL import Image, ImageTk
 import speech_recognition as sr
@@ -7,7 +7,7 @@ import pyttsx3
 import pyaudio
 
 
-root = Tk()
+root = tk.Tk()
 root.title('TalkScribe')
 root.iconbitmap('D:\\Clone\\CMSC_141_TextEditorProject\\icon\\text.ico')
 root.geometry("1200x660")
@@ -455,6 +455,7 @@ def microphone_off():
 
 # Create Menu
 my_menu = Menu(root)
+my_menu.configure(background='#F5F6E2')
 root.config(menu=my_menu)
 
 # Add File Menu
@@ -562,50 +563,62 @@ class Tooltip:
         if self.tooltip:
             self.tooltip.destroy()
 
+# Add Status Bar to Bottom of App
+status_bar = Label(root, text='Ready        ', anchor=E)
+status_bar.pack(fill=Y, side=BOTTOM, ipady=5)
+
+
 # Create Toolbar Frame
-toolbar_frame = Frame(root, bd=1, relief=RIDGE)
+toolbar_frame = Frame(root, bd=1, relief=RIDGE, bg="#D9E0C5")
 toolbar_frame.pack(fill=X, padx=5, pady=5)
+
+button_shade = "#D9E0C5"
+
+# Configure the style for TCombobox
+style = ttk.Style()
+style.configure('TCombobox', fieldbackground=button_shade, background=button_shade)
+
 
 # Undo Button
 undo_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\undo.ico")
 undo_img = undo_img.resize((16, 16))
 undo_img = ImageTk.PhotoImage(undo_img)
-undo_button = Button(toolbar_frame, image=undo_img, command=undo_text)
+undo_button = tk.Button(toolbar_frame, image=undo_img, command=undo_text, bg=button_shade)
 undo_button.image = undo_img
-undo_button.pack(side=LEFT, padx=2, pady=2)
+undo_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(undo_button, "Undo")
 
 # Redo Button
 redo_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\redo.ico")
 redo_img = redo_img.resize((16, 16))
 redo_img = ImageTk.PhotoImage(redo_img)
-redo_button = Button(toolbar_frame, image=redo_img, command=redo_text)
+redo_button = tk.Button(toolbar_frame, image=redo_img, command=redo_text, bg=button_shade)
 redo_button.image = redo_img
-redo_button.pack(side=LEFT, padx=2, pady=2)
+redo_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(redo_button, "Redo")
 
 # Font Dropdown
-font_tuple = font.families()
-font_var = StringVar()
-font_combobox = Combobox(toolbar_frame, textvariable=font_var, state='readonly', values=font_tuple, width=30)
+font_tuple = tk.font.families()
+font_var = tk.StringVar()
+font_combobox = ttk.Combobox(toolbar_frame, textvariable=font_var, state='readonly', values=font_tuple, width=30)
 font_combobox.set('Helvetica')  # Default font
-font_combobox.pack(side=LEFT, padx=2, pady=2)
+font_combobox.pack(side=tk.LEFT, padx=2, pady=2)
 font_combobox.bind("<<ComboboxSelected>>", change_font_style)
 add_tooltip(font_combobox, "Font Style")
 
 # Font Size Dropdown
-font_size_var = StringVar()
-font_size_combobox = Combobox(toolbar_frame, textvariable=font_size_var, values=[i for i in range(8, 80)], state='readonly', width=5)
-font_size_combobox.set(16)  # default font size
-font_size_combobox.pack(side=LEFT, padx=2, pady=2)
+font_size_var = tk.StringVar()
+font_size_combobox = ttk.Combobox(toolbar_frame, textvariable=font_size_var, values=[i for i in range(8, 80)], state='readonly', width=5)
+font_size_combobox.set(16)  # Default font size
+font_size_combobox.pack(side=tk.LEFT, padx=2, pady=2)
 font_size_combobox.bind("<<ComboboxSelected>>", change_font_size)
 add_tooltip(font_size_combobox, "Font Size")
 
 # Style Dropdown
-style_var = StringVar()
-style_combobox = Combobox(toolbar_frame, textvariable=style_var, state='readonly', values=('Normal', 'Title', 'Heading 1', 'Heading 2', 'Heading 3'), width=10)
+style_var = tk.StringVar()
+style_combobox = ttk.Combobox(toolbar_frame, textvariable=style_var, state='readonly', values=('Normal', 'Title', 'Heading 1', 'Heading 2', 'Heading 3'), width=10)
 style_combobox.current(0)
-style_combobox.pack(side=LEFT, padx=2, pady=2)
+style_combobox.pack(side=tk.LEFT, padx=2, pady=2)
 style_combobox.bind("<<ComboboxSelected>>", change_text_style)
 add_tooltip(style_combobox, "Text Style")
 
@@ -613,90 +626,90 @@ add_tooltip(style_combobox, "Text Style")
 bold_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\bold.ico")
 bold_img = bold_img.resize((16, 16))
 bold_img = ImageTk.PhotoImage(bold_img)
-bold_button = Button(toolbar_frame, image=bold_img, command=lambda: change_font_style(None, "Bold"))
+bold_button = tk.Button(toolbar_frame, image=bold_img, command=lambda: change_font_style(None, "Bold"), bg=button_shade)
 bold_button.image = bold_img
-bold_button.pack(side=LEFT, padx=2, pady=2)
+bold_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(bold_button, "Bold")
 
 # Italic Button
 italic_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\italic.ico")
 italic_img = italic_img.resize((16, 16))
 italic_img = ImageTk.PhotoImage(italic_img)
-italic_button = Button(toolbar_frame, image=italic_img, command=lambda: change_font_style(None, "Italic"))
+italic_button = tk.Button(toolbar_frame, image=italic_img, command=lambda: change_font_style(None, "Italic"), bg=button_shade)
 italic_button.image = italic_img
-italic_button.pack(side=LEFT, padx=2, pady=2)
+italic_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(italic_button, "Italic")
 
 # Underline Button
 underline_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\underline.ico")
 underline_img = underline_img.resize((16, 16))
 underline_img = ImageTk.PhotoImage(underline_img)
-underline_button = Button(toolbar_frame, image=underline_img, command=lambda: change_font_style(None, "Underline"))
+underline_button = tk.Button(toolbar_frame, image=underline_img, command=lambda: change_font_style(None, "Underline"), bg=button_shade)
 underline_button.image = underline_img
-underline_button.pack(side=LEFT, padx=2, pady=2)
+underline_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(underline_button, "Underline")
 
 # Text Color Button
 text_color_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\text_color.ico")
 text_color_img = text_color_img.resize((16, 16))
 text_color_img = ImageTk.PhotoImage(text_color_img)
-text_color_button = Button(toolbar_frame, image=text_color_img, command=text_color)
+text_color_button = tk.Button(toolbar_frame, image=text_color_img, command=text_color, bg=button_shade)
 text_color_button.image = text_color_img
-text_color_button.pack(side=LEFT, padx=2, pady=2)
+text_color_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(text_color_button, "Text Color")
 
 # Highlight Color Button
 highlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\highlight.ico")
 highlight_img = highlight_img.resize((16, 16))
 highlight_img = ImageTk.PhotoImage(highlight_img)
-highlight_button = Button(toolbar_frame, image=highlight_img, command=highlight_text)
+highlight_button = tk.Button(toolbar_frame, image=highlight_img, command=highlight_text, bg=button_shade)
 highlight_button.image = highlight_img
-highlight_button.pack(side=LEFT, padx=2, pady=2)
+highlight_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(highlight_button, "Highlight")
 
 # Unhighlight Button
 unhighlight_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\unhighlight.ico")
 unhighlight_img = unhighlight_img.resize((16, 16))
 unhighlight_img = ImageTk.PhotoImage(unhighlight_img)
-unhighlight_button = Button(toolbar_frame, image=unhighlight_img, command=unhighlight_text)
+unhighlight_button = tk.Button(toolbar_frame, image=unhighlight_img, command=unhighlight_text, bg=button_shade)
 unhighlight_button.image = unhighlight_img
-unhighlight_button.pack(side=LEFT, padx=2, pady=2)
+unhighlight_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(unhighlight_button, "Remove Highlight")
 
 # Align Left Button
 align_left_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_left.ico")
 align_left_img = align_left_img.resize((16, 16))
 align_left_img = ImageTk.PhotoImage(align_left_img)
-align_left_button = Button(toolbar_frame, image=align_left_img, command=lambda: align_text("left"))
+align_left_button = tk.Button(toolbar_frame, image=align_left_img, command=lambda: align_text("left"), bg=button_shade)
 align_left_button.image = align_left_img
-align_left_button.pack(side=LEFT, padx=2, pady=2)
+align_left_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(align_left_button, "Align Left")
 
 # Align Center Button
 align_center_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_center.ico")
 align_center_img = align_center_img.resize((16, 16))
 align_center_img = ImageTk.PhotoImage(align_center_img)
-align_center_button = Button(toolbar_frame, image=align_center_img, command=lambda: align_text("center"))
+align_center_button = tk.Button(toolbar_frame, image=align_center_img, command=lambda: align_text("center"), bg=button_shade)
 align_center_button.image = align_center_img
-align_center_button.pack(side=LEFT, padx=2, pady=2)
+align_center_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(align_center_button, "Align Center")
 
 # Align Right Button
 align_right_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\align_right.ico")
 align_right_img = align_right_img.resize((16, 16))
 align_right_img = ImageTk.PhotoImage(align_right_img)
-align_right_button = Button(toolbar_frame, image=align_right_img, command=lambda: align_text("right"))
+align_right_button = tk.Button(toolbar_frame, image=align_right_img, command=lambda: align_text("right"), bg=button_shade)
 align_right_button.image = align_right_img
-align_right_button.pack(side=LEFT, padx=2, pady=2)
+align_right_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(align_right_button, "Align Right")
 
 # Justify Button
 justify_img = Image.open("D:\\Clone\\CMSC_141_TextEditorProject\\Text Editor\\justify.ico")
 justify_img = justify_img.resize((16, 16))
 justify_img = ImageTk.PhotoImage(justify_img)
-justify_button = Button(toolbar_frame, image=justify_img, command=lambda: align_text("justify"))
+justify_button = tk.Button(toolbar_frame, image=justify_img, command=lambda: align_text("justify"), bg=button_shade)
 justify_button.image = justify_img
-justify_button.pack(side=LEFT, padx=2, pady=2)
+justify_button.pack(side=tk.LEFT, padx=2, pady=2)
 add_tooltip(justify_button, "Justify")
 
 # Create the microphone button
@@ -710,7 +723,7 @@ mic_icon = ImageTk.PhotoImage(mic_icon)
 
 microphone_active = False
 
-mic_button = Button(toolbar_frame, image=mic_icon, command=toggle_microphone)
+mic_button = Button(toolbar_frame, image=mic_icon, command=toggle_microphone, bg=button_shade)
 mic_button.image = mic_icon
 mic_button.pack(side=RIGHT, padx=2, pady=2)
 add_tooltip(mic_button, "Speech-to-Text")
@@ -749,21 +762,6 @@ class Tooltip:
 my_frame = Frame(root)
 my_frame.pack(pady=5)
 
-# Create Scroll Bar for Textbox
-text_scroll = Scrollbar(my_frame)
-text_scroll.pack(side=RIGHT, fill=Y)
-
-hor_scroll = Scrollbar(my_frame, orient='horizontal')
-hor_scroll.pack(side=BOTTOM, fill=X)
-
-# Create Text Box
-my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, xscrollcommand=hor_scroll.set)
-my_text.pack()
-
-# Configure Scrollbar
-text_scroll.config(command=my_text.yview)
-hor_scroll.config(command=my_text.xview)
-
 # Place Widgets in Toolbar Frame
 undo_button.pack(side=LEFT, padx=2, pady=2)
 redo_button.pack(side=LEFT, padx=2, pady=2)
@@ -791,9 +789,20 @@ root.bind('<Control-u>', lambda event: change_font_style(None, "Underline"))
 root.bind('<Control-Shift-u>', lambda event: change_font_style(None, "Underline"))
 root.bind('<Control-h>', lambda event: highlight_text())
 
-# Add Status Bar to Bottom of App
-status_bar = Label(root, text='Ready        ', anchor=E)
-status_bar.pack(fill=X, side=BOTTOM, ipady=5)
+# Create Scroll Bar for Textbox
+text_scroll = Scrollbar(my_frame)
+text_scroll.pack(side=RIGHT, fill=Y)
+
+hor_scroll = Scrollbar(my_frame, orient='horizontal')
+hor_scroll.pack(side=BOTTOM, fill=X)
+
+# Create Text Box
+my_text = Text(my_frame, width=80, height=40, font=("Helvetica", 16), selectbackground="#ACF5BC", selectforeground="black", undo=True, yscrollcommand=text_scroll.set, xscrollcommand=hor_scroll.set)
+my_text.pack()
+
+# Configure Scrollbar
+text_scroll.config(command=my_text.yview)
+hor_scroll.config(command=my_text.xview)
 
 
 root.mainloop()
