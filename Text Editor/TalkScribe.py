@@ -53,6 +53,7 @@ def open_file():
         global open_status_name
         open_status_name = text_file
 
+
     # Update the status bar
     status_bar = tk.Label(root, text="", bd=1, relief=tk.SUNKEN, anchor=tk.W)
     status_bar.pack(side=tk.BOTTOM, fill=tk.X)
@@ -396,7 +397,7 @@ def speech_to_text():
 
 def toggle_microphone():
     global microphone_active
-    engine = pyttsx3.init() 
+    engine = pyttsx3.init()
     if microphone_active:
         microphone_active = False
         mic_button.config(image=mic_icon)
@@ -408,8 +409,8 @@ def toggle_microphone():
     else:
         microphone_active = True
         mic_button.config(image=mic_active)
-        mic_button.config(command=toggle_microphone)  # Change here
-        add_tooltip(mic_button, "Turn off Speech-to-Text")  # Change here
+        mic_button.config(command=toggle_microphone)
+        add_tooltip(mic_button, "Turn off Speech-to-Text")
         status_bar.config(text="Listening...")
         engine.say("Listening")
         engine.runAndWait()
@@ -451,15 +452,15 @@ def microphone_on():
                 status_bar.config(text="Speech-to-Text Failed")
         mic_button.config(image=mic_icon)
         mic_button.config(command=toggle_microphone)
-        add_tooltip(mic_button, "Turn off Speech-to-Text")
+        add_tooltip(mic_button, "Turn on Speech-to-Text")
         status_bar.config(text="Speech-to-Text Turned Off")
 
 def microphone_off():
     global microphone_active
     microphone_active = False
     mic_button.config(image=mic_icon)
-    mic_button.config(command=toggle_microphone)  # Change here
-    add_tooltip(mic_button, "Turn on Speech-to-Text")  # Change here
+    mic_button.config(command=toggle_microphone)
+    add_tooltip(mic_button, "Turn on Speech-to-Text")
     status_bar.config(text="Speech-to-Text Turned Off")
 
 def microphone_start():
@@ -471,12 +472,13 @@ def microphone_start():
             audio = recognizer.listen(source)
             try:
                 text = recognizer.recognize_google(audio)
-                if "hey" in text.lower():  # Change "hello" to your desired keyword
+                if "hey" in text.lower():
                     toggle_microphone()
-                elif "thank you" in text.lower():  # Change "goodbye" to your desired keyword to turn off the microphone
+                elif "thank you" in text.lower():
                     microphone_off()
             except Exception as e:
                 print(e)
+
 
 
 # Create Menu
@@ -533,7 +535,7 @@ class Tooltip:
             self.tooltip.destroy()
 
 # Add Status Bar to Bottom of App
-status_bar = Label(root, text='Ready        ', anchor=E)
+status_bar = tk.Label(root, text='Ready        ', anchor=E)
 status_bar.pack(fill=Y, side=BOTTOM, ipady=5)
 
 
