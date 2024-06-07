@@ -399,6 +399,63 @@ edit_menu.add_command(label="Paste   (CTRL+V)", command=lambda: paste_text(False
 edit_menu.add_command(label="Undo   (CTRL+Z)", command=undo_text)
 edit_menu.add_command(label="Redo   (CTRL+Y)", command=redo_text)
 
+# Add Format Menu
+format_menu = Menu(my_menu, tearoff=False)
+my_menu.add_cascade(label="Format", menu=format_menu)
+
+# Add Line Spacing Submenu
+line_spacing_menu = Menu(format_menu, tearoff=False)
+format_menu.add_cascade(label="Line Spacing", menu=line_spacing_menu)
+line_spacing_menu.add_radiobutton(label="Single", command=lambda: change_line_spacing(1))
+line_spacing_menu.add_radiobutton(label="1.5", command=lambda: change_line_spacing(1.5))
+line_spacing_menu.add_radiobutton(label="Double-Spaced", command=lambda: change_line_spacing("2"))
+
+# Add Paragraph Spacing Submenu
+paragraph_spacing_menu = Menu(format_menu, tearoff=False)
+format_menu.add_cascade(label="Paragraph Spacing", menu=paragraph_spacing_menu)
+paragraph_spacing_menu.add_radiobutton(label="Before: 0, After: 0", command=lambda: change_paragraph_spacing(0, 0))
+paragraph_spacing_menu.add_radiobutton(label="Before: 6, After: 6", command=lambda: change_paragraph_spacing(6, 6))
+paragraph_spacing_menu.add_radiobutton(label="Before: 12, After: 12", command=lambda: change_paragraph_spacing(12, 12))
+paragraph_spacing_menu.add_radiobutton(label="Before: 24, After: 24", command=lambda: change_paragraph_spacing(24, 24))
+
+# Function to change line spacing
+def change_line_spacing(value):
+    if value == "double":
+        spacing = 24  # Double-spaced
+    else:
+        spacing = value
+    if my_text.tag_ranges("sel"):
+        start, end = my_text.tag_ranges("sel")
+        my_text.tag_configure("spacing1", spacing1=spacing)
+        my_text.tag_add("spacing1", start, end)
+    else:
+        my_text.config(spacing1=spacing)
+
+# Function to change paragraph spacing
+def change_paragraph_spacing(before, after):
+    if my_text.tag_ranges("sel"):
+        start, end = my_text.tag_ranges("sel")
+        my_text.tag_configure("spacing2", spacing2=(before, after))
+        my_text.tag_add("spacing2", start, end)
+    else:
+        my_text.config(spacing2=(before, after))
+
+# Function to increase line spacing
+def increase_line_spacing():
+    current_spacing = my_text.config('spacing1')[-1]
+    if current_spacing == "double":
+        new_spacing = 120  # Double the size of single spaced
+    else:
+        new_spacing = current_spacing * 2
+    change_line_spacing(new_spacing)
+
+# Function to increase paragraph spacing
+def increase_paragraph_spacing():
+    current_spacing = my_text.config('spacing2')[-1][1]
+    new_spacing = current_spacing * 2
+    change_paragraph_spacing(new_spacing, new_spacing)
+
+
 # Function to add tooltip for buttons
 def add_tooltip(widget, text):
     Tooltip(widget, text)
